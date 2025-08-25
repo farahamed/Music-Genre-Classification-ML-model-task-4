@@ -1,51 +1,98 @@
-This project focuses on classifying music genres using two different machine learning approaches:
+MUSIC GENRE CLASSIFICATION
 
-Random Forest Classifier (with Librosa Features)
+Project Description:
+This project classifies music tracks into their respective genres using audio feature extraction and machine learning models. 
+Both Random Forest and Convolutional Neural Network (CNN) models are implemented for comparison.
 
-We extracted audio features from the GTZAN dataset using the Librosa library.
+Dataset:
+- Original dataset directory: 'genres_original/'
+- Each folder corresponds to a music genre (e.g., blues, classical, country, disco, hiphop, jazz, metal, pop, reggae, rock).
+- Maximum 1600 audio files per genre are processed.
+- Audio files are 30 seconds long, sampled at 22,050 Hz.
+- Total number of samples used for training/testing depends on the number of files per genre.
 
-Features include: chroma, spectral centroid, spectral bandwidth, spectral roll-off, zero-crossing rate, MFCCs, etc.
+Feature Extraction:
+- CSV-based features (features_3_sec.csv) include MFCCs, spectral centroid, bandwidth, rolloff, flatness, spectral contrast, chroma, RMS, zero crossing rate, onset strength, and tempo.
+- Spectrogram-based features extracted using Librosa for CNN.
+- Data augmentation for CNN: pitch shift, time stretch, added noise.
+- Spectrograms are computed using melspectrogram and converted to log scale.
 
-A Random Forest classifier was trained on these extracted features.
+Data Preprocessing:
+- Dropped irrelevant columns: 'filename', 'length', 'label' for Random Forest
+- Standardization using StandardScaler
+- Label encoding for genre labels
+- Train-test split: 80% training, 20% testing
+- For CNN:
+    - Fixed spectrogram length: 1292 frames
+    - Normalized and reshaped to (128, 1292, 1)
+    - Oversampling using RandomOverSampler to balance classes
 
-First experiment: with a small number of samples (around 40), accuracy reached ~81%.
+Random Forest Models:
 
-When increasing the dataset size to more samples (e.g., 200), accuracy dropped to around 67% because the model faced more variety and complexity.
+1. **CSV-based Random Forest (features from features_3_sec.csv)**
+   - Input: Precomputed CSV features
+   - Number of samples: ~[number of rows in features_3_sec.csv]
+   - Parameters: n_estimators=300, max_depth=50
+   - Trained on 80% of the dataset
+   - Accuracy: 88%
+   - Outputs: Accuracy, Classification Report, Confusion Matrix
+   - **Best performing model in this project.**
 
-Convolutional Neural Network (CNN)
+2. **Librosa-based Random Forest (features extracted from audio)**
+   - Input: Librosa-extracted features (MFCCs, spectral, temporal)
+   - Number of samples: matches number of processed audio files (~1600 per genre max)
+   - Parameters: n_estimators=300, max_depth=50
+   - Accuracy: 66.5%
+   - Outputs: Accuracy, Classification Report, Confusion Matrix
 
-Instead of only extracting handcrafted features, we also built a deep learning model (CNN) to learn features directly from spectrogram-like representations.
+CNN Model:
+- Input: Spectrogram images (128, 1292, 1)
+- Architecture:
+    1. Conv2D (16 filters, 3x3, ReLU)
+    2. MaxPooling2D (2x2)
+    3. Conv2D (32 filters, 3x3, ReLU)
+    4. MaxPooling2D (2x2)
+    5. Conv2D (64 filters, 3x3, ReLU)
+    6. MaxPooling2D (2x2)
+    7. Flatten
+    8. Dense 128 (ReLU)
+    9. Dropout 0.4
+    10. Dense num_classes (Softmax)
+- Optimizer: Adam, learning rate 1e-4
+- Loss: Sparse Categorical Crossentropy
+- Callbacks:
+    - EarlyStopping (monitor val_loss, patience 5)
+    - ReduceLROnPlateau (factor 0.3, patience 3)
+- Epochs: 100, Batch size: 32
+- Accuracy: 63%
 
-We tried different architectures. The initial CNN was too heavy and caused very long training times.
+Evaluation:
+- Accuracy
+- Confusion Matrix
+- Classification Report (Precision, Recall, F1-score)
+- CNN confusion matrix visualized using Seaborn heatmap
 
-To improve this:
+Usage Instructions:
+1. Place dataset folders under 'genres_original/'.
+2. Place 'features_3_sec.csv' in the project directory.
+3. Run the Python script to extract features, train models, and evaluate.
+4. Libraries required:
+   - numpy, pandas, matplotlib, seaborn
+   - scikit-learn
+   - imbalanced-learn
+   - tensorflow, keras
+   - librosa
 
-Reduced the number of filters (16, 32, 64 instead of very large ones).
+Outputs:
+- music_dataframe.csv (Librosa features)
+- Random Forest model evaluation metrics (CSV-based and Librosa-based)
+- CNN model evaluation metrics and confusion matrix
 
-Added Dropout layers to reduce overfitting.
+Acknowledgments:
+- Librosa library for audio processing and feature extraction
+- Scikit-learn for Random Forest implementation
+- TensorFlow/Keras for CNN implementation
 
-Used GlobalAveragePooling2D instead of Flatten to reduce parameters.
 
-Added Early Stopping to prevent wasting time when validation accuracy stops improving.
 
-With these optimizations, training is faster, more stable, and avoids heavy overfitting.
 
-Dataset
-
-Based on GTZAN Music Genre Dataset.
-
-We experimented with different numbers of samples:
-
-40 samples: quick experiment, higher accuracy (but less generalization).
-
-200 samples: more realistic, slower training, accuracy lower due to higher challenge.
-
-Plan to scale further (e.g., 300 samples) while applying regularization to balance performance and overfitting.
-
-Current Status
-
-Random Forest + Librosa features gave a strong baseline.
-
-CNN approach is still training with optimizations (reduced complexity, dropout, early stopping).
-
-Next step: compare results and decide whether feature-based ML (Random Forest) or feature-learning DL (CNN) generalizes better.
